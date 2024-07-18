@@ -128,6 +128,8 @@ __global__ static void __launch_bounds__(kNumThreads, 1)
 }
 
 // EA: I'm not sure I need these to be in all caps
+// EA: interesting that they didn't use cute's Int<> for these
+// maybe simpler, I guess
 template <int TILE_M = 128, int TILE_N = 128, int THREADS = 32>
 int copy_host_tma_load_and_store_kernel(int M, int N, int iterations = 1) {
   using namespace cute;
