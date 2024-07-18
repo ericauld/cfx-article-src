@@ -127,6 +127,7 @@ __global__ static void __launch_bounds__(kNumThreads, 1)
   // cute::tma_store_wait<0>();
 }
 
+// EA: I'm not sure I need these to be in all caps
 template <int TILE_M = 128, int TILE_N = 128, int THREADS = 32>
 int copy_host_tma_load_and_store_kernel(int M, int N, int iterations = 1) {
   using namespace cute;
