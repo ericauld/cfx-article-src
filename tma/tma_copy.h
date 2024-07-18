@@ -183,6 +183,7 @@ int copy_host_tma_load_and_store_kernel(int M, int N, int iterations = 1) {
   int smem_size = int(sizeof(SharedStorageTMA<Element, decltype(smemLayout)>));
   printf("smem size: %d.\n", smem_size);
 
+  // EA: This is weird
   void const *kernel =
       (void const *)copyTMAKernel<THREADS, Element, decltype(params)>;
   cfk::utils::set_smem_size(smem_size, kernel);
