@@ -18,6 +18,7 @@ int main(int argc, char const **argv) {
 
   copy_host_tma_load_and_store_kernel(M, N, iterations);
   scaleTmaKernelHost(M, N, iterations);
+  // in tma copy h
   copy_host_tma_load_and_store_kernel_multicast<true, 2>(M, N, iterations);
   copy_host_tma_load_and_store_kernel_multicast<false, 2>(M, N, iterations);
   copy_host_tma_load_and_store_kernel_multicast<true, 4>(M, N, iterations);
