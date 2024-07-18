@@ -78,6 +78,10 @@ __global__ static void __launch_bounds__(kNumThreads, 1)
       make_tensor(make_smem_ptr(shared_storage.smem.data()), smemLayout);
 
   // Get mbarrier object and its value type
+
+  // EA: This mbarrier is of type `cutlass::arch::Cluster Transaction Barrier`,
+  // and note it inherits from `Cluster Barrier`, which notably is where the
+  // `wait` method lives.
   auto &mbarrier = shared_storage.mbarrier;
   using BarrierType = cutlass::arch::ClusterTransactionBarrier::ValueType;
   static_assert(cute::is_same_v<BarrierType, uint64_t>,
@@ -88,6 +92,9 @@ __global__ static void __launch_bounds__(kNumThreads, 1)
   const bool lane_predicate = cute::elect_one_sync();
   constexpr int kTmaTransactionBytes =
       sizeof(ArrayEngine<Element, size(SmemLayout{})>);
+  // EA: That's a little weird...to get the number of bytes to expect, you take
+  // the `sizeof` an ArrayEngine with second template argument the size of the
+  // Smem Layout, which I believe should be in terms of number of elements
 
   // Prefetch TMA descriptors for load and store
   if (warp_idx == 0 && lane_predicate) {
@@ -104,14 +111,30 @@ __global__ static void __launch_bounds__(kNumThreads, 1)
 
   if (warp_idx == 0 and lane_predicate) {
     mbarrier.init(1 /* arrive count */);
+    // EA: So the next line arrives and sets the number of expected bytes
     mbarrier.arrive_and_expect_tx(kTmaTransactionBytes);
+    // EA: In the Copy_Traits for `SM90 TMA LOAD` it says:
+    // "The non-executable SM90_TMA_LOAD with tma_desc and no tma_mbar
+    // Use .with(tma_mbar) to construct an executable version"
+    // EA: Note `with` returns:
+    // Copy_Traits<SM90_TMA_LOAD_OP, NumBitsPerTMA>
+    // (Note the `_OP` at the end)
     copy(tmaLoad.with(reinterpret_cast<BarrierType &>(mbarrier)),
          cta_tmaS.partition_S(gS), cta_tmaS.partition_D(sS));
+    // EA: So that's a little bit of a different API for `copy` than I'm used
+    // to...giving the op, then a source layout and a destination layout. I
+    // think in the past I've been used to the op knowing those things for
+    // itself, right?
   }
   __syncthreads();
 
   mbarrier.wait(0 /* phase */);
+  // EA: Oh, interesting, I don't think I'd clocked that the barrier itself
+  // comes with a phase
   
+  // EA: `fence view async shared`, interesting. The comment above this one in
+  // the source says "Issue a shared memory fence for async operations"
+  // Why is this necessary here? 
   cutlass::arch::fence_view_async_shared();
 
   // Get CTA view of gmem out tensor
@@ -122,6 +145,7 @@ __global__ static void __launch_bounds__(kNumThreads, 1)
 
   if (warp_idx == 0 and lane_predicate) {
     cute::copy(tmaStore, cta_tmaD.partition_S(sS), cta_tmaD.partition_D(gD));
+    // EA: Interesting that here they qualify `copy` with `cute`, but not above.
     // cute::tma_store_arrive();
   }
   // cute::tma_store_wait<0>();
@@ -172,6 +196,7 @@ int copy_host_tma_load_and_store_kernel(int M, int N, int iterations = 1) {
   // print(tma_store);
 
   Params params(tma_load, tma_store, gmemLayoutS, smemLayout, tileShape);
+  // EA: Why does it need the `gmem Layout S` but not `D`?
 
   dim3 gridDim(ceil_div(M, TILE_M), ceil_div(N, TILE_N));
   dim3 blockDim(THREADS);
