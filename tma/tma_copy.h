@@ -151,6 +151,9 @@ __global__ static void __launch_bounds__(kNumThreads, 1)
   // cute::tma_store_wait<0>();
 }
 
+// EA: I'm not sure I need these to be in all caps
+// EA: interesting that they didn't use cute's Int<> for these
+// maybe simpler, I guess
 template <int TILE_M = 128, int TILE_N = 128, int THREADS = 32>
 int copy_host_tma_load_and_store_kernel(int M, int N, int iterations = 1) {
   using namespace cute;
@@ -160,6 +163,7 @@ int copy_host_tma_load_and_store_kernel(int M, int N, int iterations = 1) {
   using Element = float;
 
   auto tensor_shape = make_shape(M, N);
+  // EA: M vs TILE_M
 
   // Allocate and initialize
   thrust::host_vector<Element> h_S(size(tensor_shape)); // (M, N)
@@ -204,6 +208,7 @@ int copy_host_tma_load_and_store_kernel(int M, int N, int iterations = 1) {
   int smem_size = int(sizeof(SharedStorageTMA<Element, decltype(smemLayout)>));
   printf("smem size: %d.\n", smem_size);
 
+  // EA: This is weird
   void const *kernel =
       (void const *)copyTMAKernel<THREADS, Element, decltype(params)>;
   cfk::utils::set_smem_size(smem_size, kernel);
