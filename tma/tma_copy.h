@@ -139,6 +139,7 @@ int copy_host_tma_load_and_store_kernel(int M, int N, int iterations = 1) {
   using Element = float;
 
   auto tensor_shape = make_shape(M, N);
+  // M vs TILE_M
 
   // Allocate and initialize
   thrust::host_vector<Element> h_S(size(tensor_shape)); // (M, N)
