@@ -17,6 +17,7 @@ int main(int argc, char const **argv) {
   std::cout << "(M, N): " << M << ", " << N << std::endl;
 
   copy_host_tma_load_and_store_kernel(M, N, iterations);
+  // in scale tma kernel h
   scaleTmaKernelHost(M, N, iterations);
   // in tma copy h
   copy_host_tma_load_and_store_kernel_multicast<true, 2>(M, N, iterations);
